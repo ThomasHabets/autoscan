@@ -5,12 +5,15 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
+	"sync"
 
 	"code.google.com/p/goauth2/oauth"
 	drive "code.google.com/p/google-api-go-client/drive/v2"
@@ -21,6 +24,8 @@ const (
 )
 
 var (
+	progressRE = regexp.MustCompile(`^Progress: [0-9.%]+$`)
+
 	configure  = flag.Bool("configure", false, "Configure autoscan.")
 	configFile = flag.String("config", ".autoscan", "Config file.")
 
@@ -121,23 +126,63 @@ func scanBatch(dir string) error {
 	return nil
 }
 
+func printProgress(r io.Reader) string {
+	reader := bufio.NewReader(r)
+	var buf bytes.Buffer
+	var err error
+	for {
+		var line string
+		line, err = reader.ReadString('\r')
+		if err != nil {
+			break
+		}
+		p := strings.Trim(line, "\r")
+		if progressRE.MatchString(p) {
+			fmt.Printf("\r%s", p)
+		}
+		fmt.Fprint(&buf, line)
+	}
+	fmt.Println()
+	if err != io.EOF {
+		log.Printf("Error reading scanimage stderr: %v", err)
+	}
+	return buf.String()
+}
+
 func scanManualSingle(dir string, page int) error {
 	of, err := os.Create(path.Join(dir, fmt.Sprintf("scan-%05d.pnm", page)))
 	if err != nil {
 		return err
 	}
-	stderr := bytes.Buffer{}
 	defer of.Close()
 	args := append(scanArgs())
 
-	log.Printf("Running %q %v\n", *scanImage, args)
+	//log.Printf("Running %q %v\n", *scanImage, args)
 	cmd := exec.Command(*scanImage, args...)
 	cmd.Dir = dir
 	cmd.Stdout = of
-	cmd.Stderr = &stderr
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running scanimage (%q %q): %v. Stderr: %q", *scanImage, args, err, stderr.String())
+	errPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stderr pipe: %v", err)
+	}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("starting scanimage (%q %q): %v", *scanImage, args, err)
+	}
+	var wg sync.WaitGroup
+	var stderr string
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		stderr = printProgress(errPipe)
+	}()
+	err = cmd.Wait()
+	wg.Wait()
+	if err != nil {
+		return fmt.Errorf("scanimage subprocess (%q %q): %v. Stderr: %q", *scanImage, args, err, stderr)
+	}
+	// TODO: possibly convert in a goroutine.
+	if err := convert(dir); err != nil {
+		log.Fatalf("Converting: %v", err)
 	}
 	return nil
 }
@@ -182,7 +227,7 @@ func convert(dir string) error {
 			cmd := exec.Command(*converter, in, out)
 			var stderr bytes.Buffer
 			cmd.Stderr = &stderr
-			log.Printf("Running %q %q", *converter, cmd.Args)
+			//log.Printf("Running %q %q", *converter, cmd.Args)
 			if err := cmd.Run(); err != nil {
 				return fmt.Errorf("running %q %q: %v. Stderr: %q", *converter, cmd.Args, err, stderr.String())
 			}
@@ -300,7 +345,7 @@ func main() {
 		log.Fatalf("Creating tempdir: %v", err)
 	}
 	defer os.RemoveAll(dir)
-	log.Printf("Storing scanned files in %q\n", dir)
+	//log.Printf("Storing scanned files in %q\n", dir)
 	if *feeder {
 		if err := scanBatch(dir); err != nil {
 			log.Fatalf("error scanning: %v", err)
