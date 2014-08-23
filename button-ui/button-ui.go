@@ -1,26 +1,49 @@
 package main
 
+/*
+
+LEDs
+ Status
+   Solid      At root menu.
+   Blinking   Something went wrong. Press ACK button to confirm and reset.
+   Off        Not awaiting any instructions. E.g. "currently scanning".
+ Heartbeat
+   Blinking   This program is active. (even when shelling out to autoscan)
+
+Buttons
+ Batch    Starts autoscan -feeder.
+ Single   Starts autoscan in single-page mode. Autoscan handles the UI from there.
+ ACK      If something goes wrong the status LED will blink until ACK is pressed.
+ Reboot   Reboots the raspberry pi.
+
+
+*/
 // (add-hook 'before-save-hook 'gofmt-before-save)
 import (
 	"flag"
 	"log"
+	"os/exec"
 	"time"
 
 	"github.com/davecheney/gpio"
 )
 
 var (
-	ledPort       = flag.Int("led_port", 25, "Information status LED port.")
-	heartbeatPort = flag.Int("heartbeat_port", 17, "Heartbeat LED port.")
-	batchPort     = flag.Int("batch_port", 27, "Batch button port.")
+	// Port config.
+	ledPort       = flag.Int("led_port", 17, "Information status LED port.")
+	heartbeatPort = flag.Int("heartbeat_port", 25, "Heartbeat LED port.")
+	batchPort     = flag.Int("batch_port", 21, "Batch button port.")
 	singlePort    = flag.Int("single_port", 22, "Single-scan button port.")
-	unusedPort    = flag.Int("unused_port", 23, "Unused port.")
+	ackPort       = flag.Int("ack_port", 23, "Ack port.")
 	rebootPort    = flag.Int("reboot_port", 24, "Reboot button port.")
+
+	autoscan = flag.String("autoscan", "autoscan", "Autoscan binary.")
+	name     = flag.String("name", "raspberry-scan", "Name of folder on Google Drive.")
 
 	led          gpio.Pin
 	batchButton  gpio.Pin
 	singleButton gpio.Pin
-	unusedButton gpio.Pin
+	ackButton    gpio.Pin
 	rebootButton gpio.Pin
 )
 
@@ -30,8 +53,10 @@ const (
 	// Buttons
 	BATCH button = iota
 	SINGLE
-	UNUSED
+	ACK
 	REBOOT
+
+	trigger = gpio.EdgeFalling
 )
 
 func heartbeats(hb gpio.Pin) {
@@ -45,15 +70,33 @@ func heartbeats(hb gpio.Pin) {
 
 func waitButton() button {
 	w := make(chan button, 100)
-	batchButton.BeginWatch(gpio.EdgeFalling, func() { w <- BATCH })
+	batchButton.BeginWatch(trigger, func() { w <- BATCH })
 	defer batchButton.EndWatch()
-	singleButton.BeginWatch(gpio.EdgeFalling, func() { w <- SINGLE })
+	singleButton.BeginWatch(trigger, func() { w <- SINGLE })
 	defer singleButton.EndWatch()
-	unusedButton.BeginWatch(gpio.EdgeFalling, func() { w <- UNUSED })
-	defer unusedButton.EndWatch()
-	rebootButton.BeginWatch(gpio.EdgeFalling, func() { w <- REBOOT })
+	ackButton.BeginWatch(trigger, func() { w <- ACK })
+	defer ackButton.EndWatch()
+	rebootButton.BeginWatch(trigger, func() { w <- REBOOT })
 	defer rebootButton.EndWatch()
+	log.Printf("Waiting for button")
 	return <-w
+}
+
+func waitAck() {
+	log.Printf("Waiting for ACK.")
+	log.Printf("Got ACK.")
+	w := make(chan bool)
+	ackButton.BeginWatch(trigger, func() { w <- true })
+	defer ackButton.EndWatch()
+	<-w
+}
+
+func runAutoscan(moarArgs ...string) error {
+	args := append([]string{
+		"-name", *name,
+	}, moarArgs...)
+	cmd := exec.Command(*autoscan, args...)
+	return cmd.Run()
 }
 
 func mainLoop() {
@@ -66,10 +109,18 @@ func mainLoop() {
 		switch btn {
 		case BATCH:
 			log.Printf("BATCH button pressed.")
+			if err := runAutoscan("-feeder"); err != nil {
+				log.Printf("BATCH autoscan failed: %v", err)
+				waitAck()
+			}
 		case SINGLE:
 			log.Printf("SINGLE button pressed.")
-		case UNUSED:
-			log.Printf("UNUSED button pressed.")
+			if err := runAutoscan("-next_button", *singlePort); err != nil {
+				log.Printf("SINGLE autoscan failed: %v", err)
+				waitAck()
+			}
+		case ACK:
+			log.Printf("ACK button pressed needlessly.")
 		case REBOOT:
 			log.Printf("REBOOT button pressed.")
 		}
@@ -85,6 +136,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Opening LED pin %d: %v", *ledPort, err)
 	}
+	hb, err := gpio.OpenPin(*heartbeatPort, gpio.ModeOutput)
+	if err != nil {
+		log.Fatalf("Opening heartbeat LED pin %d: %v", *heartbeatPort, err)
+	}
 
 	batchButton, err = gpio.OpenPin(*batchPort, gpio.ModeInput)
 	if err != nil {
@@ -98,9 +153,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Opening reboot button pin %d: %v", *rebootPort, err)
 	}
-	hb, err := gpio.OpenPin(*heartbeatPort, gpio.ModeOutput)
+	ackButton, err = gpio.OpenPin(*ackPort, gpio.ModeInput)
 	if err != nil {
-		log.Fatalf("Opening heartbeat LED pin %d: %v", *heartbeatPort, err)
+		log.Fatalf("Opening ack button pin %d: %v", *ackPort, err)
 	}
 	go heartbeats(hb)
 	mainLoop()
