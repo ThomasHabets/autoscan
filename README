@@ -1,0 +1,11 @@
+Dependencies
+------------
+apt-get install sane-utils libsane-hpaio imagemagick
+
+Install
+-------
+go install github.com/ThomasHabets/autoscan
+
+Configure
+---------
+./autoscan --configure
