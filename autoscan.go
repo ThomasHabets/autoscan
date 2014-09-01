@@ -1,5 +1,7 @@
 package main
 
+// (add-hook 'before-save-hook 'gofmt-before-save)
+
 import (
 	"bufio"
 	"bytes"
@@ -26,7 +28,12 @@ const (
 var (
 	progressRE = regexp.MustCompile(`^Progress: [0-9.%]+$`)
 
-	configure  = flag.Bool("configure", false, "Configure autoscan.")
+	keepFiles = flag.Bool("keep_files", false, "Keep tempfiles.")
+
+	configure = flag.Bool("configure", false, "Configure autoscan.")
+	driver    = flag.String("driver", "fujitsu", "SANE driver.")
+	source    = flag.String("source", "", "Source.")
+
 	configFile = flag.String("config", ".autoscan", "Config file.")
 
 	scanImage = flag.String("cmd-scanimage", "scanimage", "Location of scanimage binary.")
@@ -105,8 +112,13 @@ func doAuth() error {
 func scanArgs() []string {
 	args := []string{
 		"--format", "PNM",
+		"-d", *driver,
 		"--resolution", *resolution,
-		"-p",
+		"--mode", "Color",
+		"-y", "300",
+		"-x", "300",
+		"--page-width", "300",
+		"--page-height", "300",
 	}
 	if *scanner != "" {
 		args = append(args, "--device-name", *scanner)
@@ -115,13 +127,17 @@ func scanArgs() []string {
 }
 
 func scanBatch(dir string) error {
-	args := append(scanArgs(), "-batch")
+	args := append(scanArgs(), "-b")
+	if *source != "" {
+		args = append(args, "--source", *source)
+	}
 	log.Printf("Running %q %v\n", *scanImage, args)
 	cmd := exec.Command(*scanImage, args...)
 	cmd.Dir = dir
-	cmd.Stderr = &bytes.Buffer{}
-	if err := cmd.Run(); err != nil {
-		return err
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil && err.Error() != "exit status 7" {
+		return fmt.Errorf("scanimage subprocess (%q %q): %v. Stderr: %q", *scanImage, args, err, stderr)
 	}
 	return nil
 }
@@ -155,7 +171,7 @@ func scanManualSingle(dir string, page int) error {
 		return err
 	}
 	defer of.Close()
-	args := append(scanArgs())
+	args := append(scanArgs(), "-p")
 
 	//log.Printf("Running %q %v\n", *scanImage, args)
 	cmd := exec.Command(*scanImage, args...)
@@ -344,7 +360,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Creating tempdir: %v", err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() {
+		if !*keepFiles {
+			os.RemoveAll(dir)
+		}
+	}()
 	//log.Printf("Storing scanned files in %q\n", dir)
 	if *feeder {
 		if err := scanBatch(dir); err != nil {
@@ -359,7 +379,6 @@ func main() {
 	if err := convert(dir); err != nil {
 		log.Fatalf("Converting: %v", err)
 	}
-
 	log.Printf("Uploading...")
 	if err := upload(cfg, d, dir); err != nil {
 		log.Fatalf("Uploading: %v", err)
