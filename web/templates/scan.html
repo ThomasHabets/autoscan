@@ -1,0 +1,26 @@
+<html>
+  <head>
+    <title>Autoscan - start scan</title>
+  </head>
+  <meta http-equiv="refresh" content="0; url=/status" />
+  <style type="text/css" media="screen">
+.button {
+   display: block;
+   font-size: 48pt;
+   width: 100%;
+   height: 30%;
+   text-align: center;
+   border: solid 1px black;
+}
+  </style>
+  <body>
+    <h1>Autoscan - start scan</h1>
+    {{if .Err}}
+      <h2>Error starting scan: {{.Err}}</h2>
+      <a href="/">Back to start</a>.
+    {{else}}
+      <h2>Scan started</h2>
+      You should be redirected to: <a href="/status">the status page</a> now.
+    {{end}}
+  </body>
+</html>

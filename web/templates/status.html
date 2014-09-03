@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <title>Autoscan - Status</title>
+  </head>
+  <style type="text/css" media="screen">
+.button {
+   display: block;
+   font-size: 48pt;
+   width: 100%;
+   height: 30%;
+   text-align: center;
+   border: solid 1px black;
+}
+  </style>
+  <meta http-equiv="refresh" content="3">
+  <body>
+    <h1>Autoscan - Status</h1>
+    <h2>State: {{.State}}</h2>
+    {{if eq .State "IDLE"}}
+      {{if .LastFail}}
+        Last scan FAILED: {{.LastFail}}
+      {{else}}
+        Last scan succeeded.
+      {{end}}
+    {{end}}
+    <hr />
+    <a class="button" href="/">Back to start</a>
+  </body>
+</html>

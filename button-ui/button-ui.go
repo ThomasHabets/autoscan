@@ -115,7 +115,7 @@ func mainLoop() {
 			}
 		case SINGLE:
 			log.Printf("SINGLE button pressed.")
-			if err := runAutoscan("-next_button", *singlePort); err != nil {
+			if err := runAutoscan("-next_button", *singlePort, "-stop_button", *ackPort); err != nil {
 				log.Printf("SINGLE autoscan failed: %v", err)
 				waitAck()
 			}

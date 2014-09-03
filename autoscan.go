@@ -269,6 +269,7 @@ func upload(cfg *config, d *drive.Service, dir string) error {
 	if err != nil {
 		return fmt.Errorf("creating folder %q: %v", *name, err)
 	}
+	log.Printf("Created %+v", dd)
 
 	for _, fn := range files {
 		err := func() error {
@@ -331,15 +332,15 @@ func connect(id, secret, token string) (*oauth.Transport, error) {
 func main() {
 	flag.Parse()
 
-	if *name == "" {
-		log.Fatal("-name must be supplied")
-	}
-
 	if *configure {
 		if err := doAuth(); err != nil {
 			log.Fatalf("doAuth: %v", err)
 		}
 		return
+	}
+
+	if *name == "" {
+		log.Fatal("-name must be supplied")
 	}
 
 	cfg, err := readConfig()
