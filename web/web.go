@@ -162,6 +162,15 @@ func (b *backend) uploading() {
 		return
 	}
 
+	if len(files) == 0 {
+		b.mutex.Lock()
+		defer b.mutex.Unlock()
+		b.lastFail = fmt.Errorf("zero pages scanned")
+		log.Print(b.lastFail)
+		b.state = idle
+		return
+	}
+
 	dd, err := b.drive.Files.Insert(&drive.File{
 		Title:    time.Now().Format(time.RFC3339),
 		Parents:  []*drive.ParentReference{{Id: b.parentDir}},
