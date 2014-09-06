@@ -23,6 +23,7 @@ type Frontend struct {
 	tmplRoot   *template.Template
 	tmplScan   *template.Template
 	tmplStatus *template.Template
+	staticDir  string
 	backend    backend
 }
 
@@ -81,6 +82,7 @@ func (b *backend) start(double bool) error {
 	b.cmd.Dir = b.dir
 	if err := b.cmd.Start(); err != nil {
 		b.lastFail = fmt.Errorf("starting scan: %v", err)
+		log.Print(b.lastFail)
 		return b.lastFail
 	}
 	b.state = scanning
@@ -219,11 +221,12 @@ func (b *backend) uploading() {
 	b.lastFail = nil
 }
 
-func New(tmpldir string, d *drive.Service, parent string) *Frontend {
+func New(tmpldir, staticDir string, d *drive.Service, parent string) *Frontend {
 	f := &Frontend{
 		tmplRoot:   template.Must(template.ParseFiles(path.Join(tmpldir, "root.html"))),
 		tmplScan:   template.Must(template.ParseFiles(path.Join(tmpldir, "scan.html"))),
 		tmplStatus: template.Must(template.ParseFiles(path.Join(tmpldir, "status.html"))),
+		staticDir:  staticDir,
 		Mux:        http.NewServeMux(),
 	}
 	f.backend.state = idle
@@ -232,6 +235,7 @@ func New(tmpldir string, d *drive.Service, parent string) *Frontend {
 	f.Mux.HandleFunc("/", f.handleRoot)
 	f.Mux.HandleFunc("/scan", f.handleScan)
 	f.Mux.HandleFunc("/status", f.handleStatus)
+	f.Mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(f.staticDir))))
 	return f
 }
 

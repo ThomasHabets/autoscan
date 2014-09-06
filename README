@@ -5,6 +5,16 @@ apt-get install sane-utils libsane-hpaio imagemagick
 Install
 -------
 go install github.com/ThomasHabets/autoscan
+udev magic so that device is writable by autoscan.
+
+My GPIO pinout
+--------------
+ButtonSingle   22
+ButtonDuplex   23
+Button3        17
+Button4        27
+LED 1:         6 / 25
+LED 2:         5 / 24
 
 Configure
 ---------

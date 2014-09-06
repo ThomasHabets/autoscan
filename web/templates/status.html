@@ -1,29 +1,19 @@
 <html>
   <head>
     <title>Autoscan - Status</title>
+    <link rel="stylesheet" type="text/css" href="/static/autoscan.css" media="screen"/>
   </head>
-  <style type="text/css" media="screen">
-.button {
-   display: block;
-   font-size: 48pt;
-   width: 100%;
-   height: 30%;
-   text-align: center;
-   border: solid 1px black;
-}
-  </style>
   <meta http-equiv="refresh" content="3">
   <body>
-    <h1>Autoscan - Status</h1>
-    <h2>State: {{.State}}</h2>
     {{if eq .State "IDLE"}}
       {{if .LastFail}}
-        Last scan FAILED: {{.LastFail}}
+        <div class="msg fail">Last scan FAILED: {{.LastFail}}</div>
       {{else}}
-        Last scan succeeded.
+        <div class="msg success">Last scan succeeded</div>
       {{end}}
+    {{else}}
+      <div class="msg active">{{.State}}...</div>
     {{end}}
-    <hr />
-    <a class="button" href="/">Back to start</a>
+    <button class="button" onclick="javascript:window.location = '/'">Back to start</button>
   </body>
 </html>
