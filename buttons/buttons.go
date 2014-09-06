@@ -3,7 +3,7 @@ package buttons
 /*
 
 Buttons
- Batch    Starts autoscan -feeder.
+ Duplex    Starts autoscan -feeder.
  Single   Starts autoscan in single-page mode. Autoscan handles the UI from there.
 
 Undecided:
@@ -25,7 +25,7 @@ import (
 type Buttons struct {
 	Backend *backend.Backend
 
-	Batch  *Input
+	Duplex *Input
 	Single *Input
 	ACK    *Input
 	Reboot *Input
@@ -36,7 +36,7 @@ type button int
 const (
 	// Buttons
 	SINGLE button = iota
-	BATCH
+	DUPLEX
 	ACK
 	REBOOT
 )
@@ -68,9 +68,9 @@ func New(s, b, a, r int) (*Buttons, error) {
 		return nil, fmt.Errorf("opening single pin %d: %v", a, err)
 	}
 
-	ret.Batch, err = OpenInput(b)
+	ret.Duplex, err = OpenInput(b)
 	if err != nil {
-		return nil, fmt.Errorf("opening batch pin %d: %v", a, err)
+		return nil, fmt.Errorf("opening duplex pin %d: %v", a, err)
 	}
 
 	ret.ACK, err = OpenInput(a)
@@ -90,7 +90,7 @@ func New(s, b, a, r int) (*Buttons, error) {
 func (b *Buttons) waitButton() button {
 	btns := map[button]*Input{
 		SINGLE: b.Single,
-		BATCH:  b.Batch,
+		DUPLEX: b.Duplex,
 		ACK:    b.ACK,
 		REBOOT: b.Reboot,
 	}
@@ -117,12 +117,12 @@ func (b *Buttons) Run() {
 		log.Printf("Main loop iteration.")
 		btn := b.waitButton()
 		switch btn {
-		case BATCH:
-			log.Printf("BATCH button pressed.")
-			b.Backend.Run(true)
 		case SINGLE:
 			log.Printf("SINGLE button pressed.")
 			b.Backend.Run(false)
+		case DUPLEX:
+			log.Printf("DUPLEX button pressed.")
+			b.Backend.Run(true)
 		case ACK:
 			log.Printf("ACK button pressed needlessly.")
 		case REBOOT:
