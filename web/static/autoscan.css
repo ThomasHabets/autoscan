@@ -18,10 +18,10 @@ h1 {
   background-color: red;
 }
 .success {
-  color: white;
+  color: black;
   background-color: #40FF40;
 }
 .active {
-  color: white;
+  color: black;
   background-color: yellow;
 }
