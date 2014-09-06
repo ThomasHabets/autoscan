@@ -165,8 +165,7 @@ func main() {
 	}
 	b.Init()
 
-	f := web.New(*tmplDir, *staticDir)
-	f.Backend = &b
+	f := web.New(*tmplDir, *staticDir, &b)
 
 	btns, err := buttons.New(*pinButtonSingle, *pinButtonDuplex, *pinButton3, *pinButton4)
 	if err != nil {
