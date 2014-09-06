@@ -163,7 +163,6 @@ func main() {
 		Drive:     d,
 		Progress:  progress,
 	}
-	b.Init()
 
 	f := web.New(*tmplDir, *staticDir, &b)
 

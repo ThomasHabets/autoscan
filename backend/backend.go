@@ -17,8 +17,10 @@ import (
 	"github.com/ThomasHabets/autoscan/backend/leds"
 )
 
+// State describes what the backend is doing.
 type State string
 
+// The states the backend can be in. Self-explanatory.
 const (
 	IDLE       State = "IDLE"
 	SCANNING   State = "SCANNING"
@@ -26,6 +28,7 @@ const (
 	UPLOADING  State = "UPLOADING"
 )
 
+// A Backend takes care of the actual scanning/converting/uploading process.
 type Backend struct {
 	// Must all be set.
 	Scanimage string
@@ -34,14 +37,18 @@ type Backend struct {
 	Drive     *drive.Service
 	Progress  chan leds.LEDMode
 
-	// Read by non-backend, mutex protected.
+	// Read by external flows, mutex protected.
 	mutex    sync.Mutex
 	state    State
 	lastFail error
 }
 
-func (b *Backend) Init() {
-	b.state = IDLE
+// Set the initial state of the Backend.
+// Only call under mutex lock. Safe to call multiple times.
+func (b *Backend) init() {
+	if b.state == "" {
+		b.state = IDLE
+	}
 }
 
 func (b *Backend) scan(duplex bool, dir string) error {
@@ -163,6 +170,8 @@ func (b *Backend) upload(dir string) error {
 	return nil
 }
 
+// Run runs one scanning round (scan, convert, upload).
+// If a round is already running, return error and do nothing.
 func (b *Backend) Run(duplex bool) error {
 	log.Printf("Scan run triggered in backend.")
 	errout := func(err error) {
@@ -176,7 +185,7 @@ func (b *Backend) Run(duplex bool) error {
 	if err := func() error {
 		b.mutex.Lock()
 		defer b.mutex.Unlock()
-
+		b.init()
 		if b.state != IDLE {
 			return fmt.Errorf("state not idle, can't start scan now. state: %s", b.state)
 		}
@@ -234,8 +243,11 @@ func (b *Backend) Run(duplex bool) error {
 	return nil
 }
 
+// Status returns the state and last error of the backend.
+// Both return values are valid, even if error is non-nil.
 func (b *Backend) Status() (State, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+	b.init()
 	return b.state, b.lastFail
 }

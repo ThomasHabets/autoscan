@@ -7,8 +7,11 @@ import (
 	"github.com/davecheney/gpio"
 )
 
+// LEDMode is a what the LED is doing.
+// TODO: This is a bit ugly and untrue since blinking is orthogonal to colour.
 type LEDMode string
 
+// LEDMode "commands".
 const (
 	RED      LEDMode = "RED"
 	GREEN    LEDMode = "GREEN"
@@ -17,6 +20,9 @@ const (
 	SHUTDOWN LEDMode = "SHUTDOWN"
 )
 
+// LEDController opens GPIO ports and runs forever, keeping this LED up to date.
+// Send SHUTDOWN to stop this goroutine.
+// Returns a channel notifying that it's done and won't be touching the GPIO ports anymore.
 func LEDController(a, b int, control <-chan LEDMode) (<-chan struct{}, error) {
 	mode := GREEN
 	blink := false
