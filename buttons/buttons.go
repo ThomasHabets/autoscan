@@ -20,65 +20,74 @@ import (
 	"time"
 
 	"github.com/ThomasHabets/autoscan/backend"
+	"github.com/ThomasHabets/autoscan/backend/leds"
 )
 
+// Buttons keeps track of the buttons and notifies backend and LEDs.
 type Buttons struct {
-	Backend *backend.Backend
+	Backend  *backend.Backend
+	Progress chan<- leds.LEDMode
 
-	Duplex *Input
-	Single *Input
-	ACK    *Input
-	Reboot *Input
+	Duplex *input
+	Single *input
+	ACK    *input
+	Reboot *input
 }
 
 type button int
 
 const (
-	// Buttons
+	// SINGLE button scans single-sided.
 	SINGLE button = iota
+	// DUPLEX button scans double-sided.
 	DUPLEX
+	// ACK button turns red lamp green.
 	ACK
+	// REBOOT button reboots the machine.
 	REBOOT
 )
 
 const (
+	// BasePath is where are the GPIO special files are.
 	BasePath = "/sys/class/gpio"
 )
 
-type Input struct {
+type input struct {
 	File *os.File
 }
 
-func OpenInput(n int) (*Input, error) {
+func openInput(n int) (*input, error) {
+	// TODO: Export and set direction.
 	f, err := os.Open(path.Join(BasePath, fmt.Sprintf("gpio%d", n), "value"))
 	if err != nil {
 		return nil, err
 	}
-	return &Input{
+	return &input{
 		File: f,
 	}, nil
 }
 
+// New opens GPIO pins and creates a new Buttons.
 func New(s, b, a, r int) (*Buttons, error) {
 	ret := &Buttons{}
 	var err error
 
-	ret.Single, err = OpenInput(s)
+	ret.Single, err = openInput(s)
 	if err != nil {
 		return nil, fmt.Errorf("opening single pin %d: %v", a, err)
 	}
 
-	ret.Duplex, err = OpenInput(b)
+	ret.Duplex, err = openInput(b)
 	if err != nil {
 		return nil, fmt.Errorf("opening duplex pin %d: %v", a, err)
 	}
 
-	ret.ACK, err = OpenInput(a)
+	ret.ACK, err = openInput(a)
 	if err != nil {
 		return nil, fmt.Errorf("opening ACK pin %d: %v", a, err)
 	}
 
-	ret.Reboot, err = OpenInput(r)
+	ret.Reboot, err = openInput(r)
 	if err != nil {
 		return nil, fmt.Errorf("opening reboot pin %d: %v", a, err)
 	}
@@ -88,7 +97,7 @@ func New(s, b, a, r int) (*Buttons, error) {
 
 // wait for a button to be pressed, and return that button.
 func (b *Buttons) waitButton() button {
-	btns := map[button]*Input{
+	btns := map[button]*input{
 		SINGLE: b.Single,
 		DUPLEX: b.Duplex,
 		ACK:    b.ACK,
@@ -111,10 +120,10 @@ func (b *Buttons) waitButton() button {
 	}
 }
 
+// Run keeps a LED updated. Forever.
 func (b *Buttons) Run() {
-	log.Printf("Starting main loop.")
+	log.Printf("Starting button reading loop.")
 	for {
-		log.Printf("Main loop iteration.")
 		btn := b.waitButton()
 		switch btn {
 		case SINGLE:
@@ -124,7 +133,8 @@ func (b *Buttons) Run() {
 			log.Printf("DUPLEX button pressed.")
 			b.Backend.Run(true)
 		case ACK:
-			log.Printf("ACK button pressed needlessly.")
+			log.Printf("ACK button pressed.")
+			b.Progress <- leds.GREEN
 		case REBOOT:
 			log.Printf("REBOOT button pressed.")
 		}

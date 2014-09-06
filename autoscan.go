@@ -173,6 +173,7 @@ func main() {
 		log.Fatalf("Setting up buttons: %v", err)
 	}
 	btns.Backend = &b
+	btns.Progress = progress
 
 	log.Printf("Running.")
 	go btns.Run()
