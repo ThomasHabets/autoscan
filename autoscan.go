@@ -128,7 +128,7 @@ func main() {
 	status := make(chan leds.LEDMode)
 	_, err := leds.LEDController(*pinLED1a, *pinLED1b, status)
 	if err != nil {
-		log.Fatal("Status LED: %v", err)
+		log.Fatalf("Status LED: %v", err)
 	}
 	status <- leds.GREEN
 	status <- leds.BLINK
@@ -139,7 +139,7 @@ func main() {
 	progress := make(chan leds.LEDMode)
 	_, err = leds.LEDController(*pinLED2a, *pinLED2b, progress)
 	if err != nil {
-		log.Fatal("Progress LED: %v", err)
+		log.Fatalf("Progress LED: %v", err)
 	}
 	progress <- leds.GREEN
 
