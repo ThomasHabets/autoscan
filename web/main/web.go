@@ -15,6 +15,7 @@ import (
 	drive "code.google.com/p/google-api-go-client/drive/v2"
 	"github.com/davecheney/gpio"
 
+	"github.com/ThomasHabets/autoscan/backend"
 	"github.com/ThomasHabets/autoscan/web"
 )
 
@@ -24,6 +25,10 @@ var (
 	configFile = flag.String("config", ".autoscan", "Config file.")
 	tmplDir    = flag.String("templates", "", "Directory with HTML templates.")
 	staticDir  = flag.String("static", "", "Directory with static files.")
+
+	// Externals
+	scanimage = flag.String("scanimage", "scanimage", "Scanimage binary from SANE.")
+	convert   = flag.String("convert", "convert", "Convert binary from ImageMagick.")
 
 	pinButtonSingle = flag.Int("pin_single", 22, "GPIO PIN for 'scan single'.")
 	pinButtonDuplex = flag.Int("pin_duplex", 23, "GPIO PIN for 'scan duplex'.")
@@ -148,6 +153,12 @@ func connect(id, secret, token string) (*oauth.Transport, error) {
 }
 func main() {
 	flag.Parse()
+	if *staticDir == "" {
+		log.Fatalf("-static is mandatory.")
+	}
+	if *tmplDir == "" {
+		log.Fatalf("-templates is mandatory.")
+	}
 
 	status := make(chan LEDMode)
 	go LEDController(*pinLED1a, *pinLED1b, status)
@@ -170,7 +181,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("Creating Google Drive client: %v", err)
 	}
-	f := web.New(*tmplDir, *staticDir, d, cfg.parent)
+
+	b := backend.Backend{
+		Scanimage: *scanimage,
+		Convert:   *convert,
+		ParentDir: cfg.parent,
+		Drive:     d,
+	}
+	b.Init()
+
+	f := web.New(*tmplDir, *staticDir)
+	f.Backend = &b
 	log.Printf("Running.")
 	servePort(f.Mux)
 }

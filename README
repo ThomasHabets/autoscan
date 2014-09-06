@@ -22,3 +22,9 @@ LED 2:         5 / 24
 Configure
 ---------
 ./autoscan --configure
+
+
+Bugs in gpio on github:
+* not checking for EINTR
+* race condition opening for output: direction not set before value sent.
+* improper locking
