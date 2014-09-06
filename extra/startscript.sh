@@ -2,7 +2,7 @@
 
 set -e
 
-SCANIMAGE="/usr/local/bin/scanimage-wrap"
+SCANIMAGE="/opt/autoscan/bin/scanimage-wrap"
 DAEMON=/opt/autoscan/bin/autoscan
 PIDFILE=/var/run/autoscan.pid
 USER=thompa
