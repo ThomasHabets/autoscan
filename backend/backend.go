@@ -13,6 +13,8 @@ import (
 	"time"
 
 	drive "code.google.com/p/google-api-go-client/drive/v2"
+
+	"github.com/ThomasHabets/autoscan/backend/leds"
 )
 
 type State string
@@ -30,6 +32,7 @@ type Backend struct {
 	Convert   string
 	ParentDir string
 	Drive     *drive.Service
+	Progress  chan leds.LEDMode
 
 	// Read by non-backend, mutex protected.
 	mutex    sync.Mutex
@@ -184,12 +187,19 @@ func (b *Backend) Run(duplex bool) error {
 	}(); err != nil {
 		return err
 	}
+	b.Progress <- leds.GREEN
+	b.Progress <- leds.BLINK
 
 	// When done, reset to IDLE.
 	defer func() {
 		b.mutex.Lock()
 		defer b.mutex.Unlock()
 		b.state = IDLE
+		if b.lastFail == nil {
+			b.Progress <- leds.GREEN
+		} else {
+			b.Progress <- leds.RED
+		}
 	}()
 
 	// Create temp dir.

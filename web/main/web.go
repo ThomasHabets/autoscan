@@ -9,19 +9,20 @@ import (
 	"net/http/fcgi"
 	"os"
 	"strings"
-	"time"
 
 	"code.google.com/p/goauth2/oauth"
 	drive "code.google.com/p/google-api-go-client/drive/v2"
-	"github.com/davecheney/gpio"
 
 	"github.com/ThomasHabets/autoscan/backend"
+	"github.com/ThomasHabets/autoscan/backend/leds"
+	buttons "github.com/ThomasHabets/autoscan/button-ui"
 	"github.com/ThomasHabets/autoscan/web"
 )
 
 var (
+	listen     = flag.String("listen", "", "Address to listen to.")
 	socketPath = flag.String("socket", "", "UNIX socket to listen to.")
-	listen     = flag.String("listen", ":8080", "Address to listen to.")
+
 	configFile = flag.String("config", ".autoscan", "Config file.")
 	tmplDir    = flag.String("templates", "", "Directory with HTML templates.")
 	staticDir  = flag.String("static", "", "Directory with static files.")
@@ -32,6 +33,8 @@ var (
 
 	pinButtonSingle = flag.Int("pin_single", 22, "GPIO PIN for 'scan single'.")
 	pinButtonDuplex = flag.Int("pin_duplex", 23, "GPIO PIN for 'scan duplex'.")
+	pinButton3      = flag.Int("pin_ack", 17, "GPIO PIN for 'ACK'.")
+	pinButton4      = flag.Int("pin_reboot", 27, "GPIO PIN for 'reboot'.")
 
 	pinLED1a = flag.Int("pin_led1_a", 6, "GPIO PIN for LED 1 PIN 1/2.")
 	pinLED1b = flag.Int("pin_led1_b", 25, "GPIO PIN for LED 1 PIN 2/2.")
@@ -39,61 +42,6 @@ var (
 	pinLED2a = flag.Int("pin_led2_a", 5, "GPIO PIN for LED 2 PIN 1/2.")
 	pinLED2b = flag.Int("pin_led2_b", 24, "GPIO PIN for LED 2 PIN 2/2.")
 )
-
-type LEDMode string
-
-const (
-	RED   LEDMode = "RED"
-	GREEN LEDMode = "GREEN"
-	BLINK LEDMode = "BLINK"
-	OFF   LEDMode = "OFF"
-)
-
-func LEDController(a, b int, control <-chan LEDMode) {
-	mode := GREEN
-	blink := false
-	blinkOn := false
-	ledA, err := gpio.OpenPin(a, gpio.ModeOutput)
-	if err != nil {
-		log.Fatalf("Opening LED pin %d: %v", a, err)
-	}
-	ledB, err := gpio.OpenPin(b, gpio.ModeOutput)
-	if err != nil {
-		log.Fatalf("Opening heartbeat LED pin %d: %v", b, err)
-	}
-	maybe := func() {
-		blinkOn = !blinkOn
-		if blink && !blinkOn {
-			ledA.Clear()
-			ledB.Clear()
-			return
-		}
-		switch mode {
-		case RED:
-			ledA.Set()
-			ledB.Clear()
-		case GREEN:
-			ledA.Clear()
-			ledB.Set()
-		case OFF:
-			ledA.Clear()
-			ledB.Clear()
-		}
-	}
-	for {
-		select {
-		case <-time.After(time.Second):
-		case m := <-control:
-			if m == BLINK {
-				blink = true
-			} else {
-				blink = false
-				mode = m
-			}
-		}
-		maybe()
-	}
-}
 
 func oauthConfig(id, secret string) *oauth.Config {
 	return &oauth.Config{
@@ -160,14 +108,28 @@ func main() {
 		log.Fatalf("-templates is mandatory.")
 	}
 
-	status := make(chan LEDMode)
-	go LEDController(*pinLED1a, *pinLED1b, status)
-	progress := make(chan LEDMode)
-	go LEDController(*pinLED2a, *pinLED2b, progress)
-	status <- GREEN
-	status <- BLINK
-	progress <- RED
-	progress <- BLINK
+	if (*listen == "") == (*socketPath == "") {
+		log.Fatalf("Exactly one of -listen and -socket must be specified.")
+	}
+
+	// Status LED: Blink when this daemon is running.
+	status := make(chan leds.LEDMode)
+	_, err := leds.LEDController(*pinLED1a, *pinLED1b, status)
+	if err != nil {
+		log.Fatal("Status LED: %v", err)
+	}
+	status <- leds.GREEN
+	status <- leds.BLINK
+
+	// Progress LED:
+	// * Solid green or red showing last status, ready for new scan.
+	// * Blinking green while "in progress".
+	progress := make(chan leds.LEDMode)
+	_, err = leds.LEDController(*pinLED2a, *pinLED2b, progress)
+	if err != nil {
+		log.Fatal("Progress LED: %v", err)
+	}
+	progress <- leds.GREEN
 
 	cfg, err := readConfig()
 	if err != nil {
@@ -187,11 +149,21 @@ func main() {
 		Convert:   *convert,
 		ParentDir: cfg.parent,
 		Drive:     d,
+		Progress:  progress,
 	}
 	b.Init()
 
 	f := web.New(*tmplDir, *staticDir)
 	f.Backend = &b
+
+	btns, err := buttons.New(*pinButtonSingle, *pinButtonDuplex, *pinButton3, *pinButton4)
+	if err != nil {
+		log.Fatalf("Setting up buttons: %v", err)
+	}
+	btns.Backend = &b
+
 	log.Printf("Running.")
+	go btns.Run()
+
 	servePort(f.Mux)
 }
