@@ -5,7 +5,10 @@ apt-get install sane-utils libsane-hpaio imagemagick
 Install
 -------
 go install github.com/ThomasHabets/autoscan
-udev magic so that device is writable by autoscan.
+
+Put this in /dev/udev/rules.d/99-autoscan.rules:
+  ATTRS{idVendor}=="04c5", ATTRS{idProduct}=="1155", SYMLINK+="usbscanner", GROUP="scanner"
+Make sure whatever user you run as is member of "scanner" group.
 
 My GPIO pinout
 --------------
