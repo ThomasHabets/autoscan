@@ -36,6 +36,10 @@ func New(tmpldir, staticDir string) *Frontend {
 }
 
 func (f *Frontend) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if len(r.URL.Path) > 1 {
+		http.NotFound(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	f.tmplRoot.Execute(w, nil)
 }
