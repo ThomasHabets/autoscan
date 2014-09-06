@@ -63,7 +63,11 @@ func (f *Frontend) handleScan(w http.ResponseWriter, r *http.Request) {
 	} else {
 		go f.Backend.Run(double)
 	}
-	f.tmplScan.Execute(w, &data)
+	if data.Err != nil {
+		f.tmplScan.Execute(w, &data)
+	} else {
+		http.Redirect(w, r, "/status", http.StatusFound)
+	}
 }
 
 func (f *Frontend) handleStatus(w http.ResponseWriter, r *http.Request) {

@@ -4,15 +4,9 @@
     <link rel="stylesheet" type="text/css" href="/static/autoscan.css" media="screen"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
   </head>
-  <meta http-equiv="refresh" content="0; url=/status" />
   <body>
     <h1>Autoscan - start scan</h1>
-    {{if .Err}}
-      <h2>Error starting scan: {{.Err}}</h2>
-      <a href="/">Back to start</a>.
-    {{else}}
-      <h2>Scan started</h2>
-      You should be redirected to: <a href="/status">the status page</a> now.
-    {{end}}
+    <h2>Error starting scan: {{.Err}}</h2>
+    <a href="/">Back to start</a>.
   </body>
 </html>
