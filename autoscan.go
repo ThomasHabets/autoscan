@@ -1,3 +1,13 @@
+/*
+Autoscan - Automate scanning from USB to Google Drive using a Raspberry Pi.
+
+Example usage:
+    ./autoscan \
+        -templates src/github.com/ThomasHabets/autoscan/web/templates/ \
+        -scanimage $(pwd)/src/github.com/ThomasHabets/autoscan/extra/scanimage-wrap \
+        -static src/github.com/ThomasHabets/autoscan/web/static/ \
+        -listen :8080
+*/
 package main
 
 import (

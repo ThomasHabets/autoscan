@@ -1,3 +1,6 @@
+/*
+Package web provides the Web UI for Autoscan.
+*/
 package web
 
 import (
@@ -21,7 +24,10 @@ type Frontend struct {
 	staticDir  string
 }
 
-// New creates a new Frontend
+// New creates a new Frontend.
+// tmplDir is the directory that contains HTML templates.
+// staticDir is the directory that contains static files, like css files, that will be accessible under /static/.
+// b is the Autoscan backend.
 func New(tmpldir, staticDir string, b *backend.Backend) *Frontend {
 	f := &Frontend{
 		tmplRoot:   template.Must(template.ParseFiles(path.Join(tmpldir, "root.html"))),

@@ -37,14 +37,10 @@ type Buttons struct {
 type button int
 
 const (
-	// SINGLE button scans single-sided.
-	SINGLE button = iota
-	// DUPLEX button scans double-sided.
-	DUPLEX
-	// ACK button turns red lamp green.
-	ACK
-	// REBOOT button reboots the machine.
-	REBOOT
+	single button = iota // Scans single-sided pages.
+	duplex               // Scans double-sided pages.
+	ack                  // Turns a red lamp green.
+	reboot               // Reboots the machine.
 )
 
 const (
@@ -98,10 +94,10 @@ func New(s, b, a, r int) (*Buttons, error) {
 // wait for a button to be pressed, and return that button.
 func (b *Buttons) waitButton() button {
 	btns := map[button]*input{
-		SINGLE: b.Single,
-		DUPLEX: b.Duplex,
-		ACK:    b.ACK,
-		REBOOT: b.Reboot,
+		single: b.Single,
+		duplex: b.Duplex,
+		ack:    b.ACK,
+		reboot: b.Reboot,
 	}
 	// Poll for button status.
 	// This is an ugly ugly hack, but the 'gpio' package is unstable.
@@ -120,22 +116,22 @@ func (b *Buttons) waitButton() button {
 	}
 }
 
-// Run keeps a LED updated. Forever.
+// Run listens to button presses. Forever.
 func (b *Buttons) Run() {
 	log.Printf("Starting button reading loop.")
 	for {
 		btn := b.waitButton()
 		switch btn {
-		case SINGLE:
+		case single:
 			log.Printf("SINGLE button pressed.")
 			b.Backend.Run(false)
-		case DUPLEX:
+		case duplex:
 			log.Printf("DUPLEX button pressed.")
 			b.Backend.Run(true)
-		case ACK:
+		case ack:
 			log.Printf("ACK button pressed.")
 			b.Progress <- leds.GREEN
-		case REBOOT:
+		case reboot:
 			log.Printf("REBOOT button pressed.")
 		}
 		time.Sleep(time.Second)
