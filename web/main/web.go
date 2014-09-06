@@ -101,6 +101,9 @@ func connect(id, secret, token string) (*oauth.Transport, error) {
 }
 func main() {
 	flag.Parse()
+
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
 	if *staticDir == "" {
 		log.Fatalf("-static is mandatory.")
 	}
