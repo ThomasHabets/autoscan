@@ -1,0 +1,10 @@
+#!/bin/sh                                                                                                                                   
+set -e
+echo "--- Precommit: gofmt ---"
+~/bin/fmt-check
+echo "--- Precommit: lint ---"
+~/bin/golint-check
+echo "--- Precommit: govet ---"
+go vet github.com/ThomasHabets/autoscan/...
+echo "--- Precommit: unit tests ---"
+go test github.com/ThomasHabets/autoscan/...
