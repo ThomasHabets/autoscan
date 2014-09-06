@@ -23,6 +23,7 @@ var (
 	listen     = flag.String("listen", "", "Address to listen to.")
 	socketPath = flag.String("socket", "", "UNIX socket to listen to.")
 
+	logfile    = flag.String("logfile", "", "Where to log. If not specified will log to stdout.")
 	configFile = flag.String("config", ".autoscan", "Config file.")
 	tmplDir    = flag.String("templates", "", "Directory with HTML templates.")
 	staticDir  = flag.String("static", "", "Directory with static files.")
@@ -103,6 +104,14 @@ func main() {
 	flag.Parse()
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
+	if *logfile != "" {
+		f, err := os.OpenFile(*logfile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0660)
+		if err != nil {
+			log.Fatalf("Opening logfile %q: %v", *logfile, err)
+		}
+		log.SetOutput(f)
+	}
 
 	if *staticDir == "" {
 		log.Fatalf("-static is mandatory.")

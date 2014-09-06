@@ -9,6 +9,10 @@ go install github.com/ThomasHabets/autoscan
 Put this in /dev/udev/rules.d/99-autoscan.rules:
   ATTRS{idVendor}=="04c5", ATTRS{idProduct}=="1155", SYMLINK+="usbscanner", GROUP="scanner"
 Make sure whatever user you run as is member of "scanner" group.
+mkdir -p /opt/autoscan/{bin,log,etc}
+cp autoscan /opt/autoscan/bin
+/opt/autoscan/bin -config=/opt/autoscan/etc/autoscan.conf -configure
+
 
 My GPIO pinout
 --------------
