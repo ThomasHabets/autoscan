@@ -15,7 +15,7 @@ import (
 
 	"github.com/ThomasHabets/autoscan/backend"
 	"github.com/ThomasHabets/autoscan/backend/leds"
-	buttons "github.com/ThomasHabets/autoscan/button-ui"
+	"github.com/ThomasHabets/autoscan/buttons"
 	"github.com/ThomasHabets/autoscan/web"
 )
 
