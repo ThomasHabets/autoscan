@@ -186,5 +186,9 @@ func main() {
 	log.Printf("Running.")
 	go btns.Run()
 
-	servePort(f.Mux)
+	if *listen != "" {
+		servePort(f.Mux)
+	} else {
+		serveFCGI(f.Mux)
+	}
 }
