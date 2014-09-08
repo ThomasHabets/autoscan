@@ -12,13 +12,16 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"net/http/fcgi"
 	"os"
+	"path"
 	"strings"
+	"time"
 
 	"code.google.com/p/goauth2/oauth"
 	drive "code.google.com/p/google-api-go-client/drive/v2"
@@ -27,6 +30,11 @@ import (
 	"github.com/ThomasHabets/autoscan/backend/leds"
 	"github.com/ThomasHabets/autoscan/buttons"
 	"github.com/ThomasHabets/autoscan/web"
+)
+
+const (
+	// BasePath is where are the GPIO special files are.
+	BasePath = "/sys/class/gpio"
 )
 
 var (
@@ -68,6 +76,9 @@ func oauthConfig(id, secret string) *oauth.Config {
 }
 
 func serveFCGI(m *http.ServeMux) error {
+	if err := os.Remove(*socketPath); err != nil {
+		log.Printf("Removing old socket %q: %v", *socketPath, err)
+	}
 	sock, err := net.Listen("unix", *socketPath)
 	if err != nil {
 		log.Fatal("Unable to listen to socket: ", err)
@@ -110,6 +121,71 @@ func connect(id, secret, token string) (*oauth.Transport, error) {
 	}
 	return t, t.Refresh()
 }
+
+func export(n int) error {
+	if err := func() error {
+		f, err := os.OpenFile(path.Join(BasePath, "export"), os.O_WRONLY, 0660)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		fmt.Fprintf(f, "%d\n", n)
+		return nil
+	}(); err != nil {
+		return err
+	}
+	start := time.Now()
+	for {
+		time.Sleep(50 * time.Millisecond)
+		_, err := os.Stat(path.Join(BasePath, fmt.Sprintf("gpio%d", n), "direction"))
+		if err != nil {
+			if time.Since(start) > 10*time.Second {
+				return err
+			}
+			continue
+		}
+		_, err = os.Stat(path.Join(BasePath, fmt.Sprintf("gpio%d", n), "value"))
+		if err != nil {
+			if time.Since(start) > 10*time.Second {
+				return err
+			}
+			continue
+		}
+		return nil
+	}
+}
+
+func setDirection(n int, dir string) error {
+	start := time.Now()
+	if err := func() error {
+		for {
+			f, err := os.OpenFile(path.Join(BasePath, fmt.Sprintf("gpio%d", n), "direction"), os.O_WRONLY, 0660)
+			if err != nil {
+				if time.Since(start) > 10*time.Second {
+					return err
+				}
+				time.Sleep(50 * time.Millisecond)
+				continue
+			}
+			defer f.Close()
+			fmt.Fprintf(f, dir+"\n")
+			return nil
+		}
+	}(); err != nil {
+		return err
+	}
+	for {
+		s, err := ioutil.ReadFile(path.Join(BasePath, fmt.Sprintf("gpio%d", n), "direction"))
+		if err != nil {
+			return err
+		}
+		if string(s) == dir+"\n" {
+			return nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -132,6 +208,34 @@ func main() {
 
 	if (*listen == "") == (*socketPath == "") {
 		log.Fatalf("Exactly one of -listen and -socket must be specified.")
+	}
+
+	// Set up GPIO ports race-free.
+	for _, n := range []int{
+		*pinLED1a,
+		*pinLED1b,
+		*pinLED2a,
+		*pinLED2b,
+	} {
+		if err := export(n); err != nil {
+			log.Fatalf("export(%d): %v", n, err)
+		}
+		if err := setDirection(n, "out"); err != nil {
+			log.Fatalf("setDirection(%d, out): %v", n, err)
+		}
+	}
+	for _, n := range []int{
+		*pinButtonSingle,
+		*pinButtonDuplex,
+		*pinButton3,
+		*pinButton4,
+	} {
+		if err := export(n); err != nil {
+			log.Fatalf("export(%d): %v", n, err)
+		}
+		if err := setDirection(n, "in"); err != nil {
+			log.Fatalf("setDirection(%d, in): %v", n, err)
+		}
 	}
 
 	// Status LED: Blink when this daemon is running.

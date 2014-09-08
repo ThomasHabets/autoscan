@@ -53,32 +53,6 @@ type input struct {
 }
 
 func openInput(n int) (*input, error) {
-	// Export.
-	if err := func() error {
-		f, err := os.OpenFile(path.Join(BasePath, "export"), os.O_WRONLY, 0660)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		fmt.Fprintf(f, "%d\n", n)
-		return nil
-	}(); err != nil {
-		return nil, err
-	}
-
-	// Direction.
-	if err := func() error {
-		f, err := os.OpenFile(path.Join(BasePath, fmt.Sprintf("gpio%d", n), "direction"), os.O_WRONLY, 0660)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		fmt.Fprintf(f, "in\n")
-		return nil
-	}(); err != nil {
-		return nil, err
-	}
-
 	f, err := os.Open(path.Join(BasePath, fmt.Sprintf("gpio%d", n), "value"))
 	if err != nil {
 		return nil, err
