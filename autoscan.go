@@ -46,6 +46,8 @@ var (
 	tmplDir    = flag.String("templates", "", "Directory with HTML templates.")
 	staticDir  = flag.String("static", "", "Directory with static files.")
 
+	useButtons = flag.Bool("use_buttons", false, "Enable buttons.")
+
 	// Externals
 	scanimage = flag.String("scanimage", "scanimage", "Scanimage binary from SANE.")
 	convert   = flag.String("convert", "convert", "Convert binary from ImageMagick.")
@@ -279,15 +281,17 @@ func main() {
 
 	f := web.New(*tmplDir, *staticDir, &b)
 
-	btns, err := buttons.New(*pinButtonSingle, *pinButtonDuplex, *pinButton3, *pinButton4)
-	if err != nil {
-		log.Fatalf("Setting up buttons: %v", err)
+	if *useButtons {
+		btns, err := buttons.New(*pinButtonSingle, *pinButtonDuplex, *pinButton3, *pinButton4)
+		if err != nil {
+			log.Fatalf("Setting up buttons: %v", err)
+		}
+		btns.Backend = &b
+		btns.Progress = progress
+		go btns.Run()
 	}
-	btns.Backend = &b
-	btns.Progress = progress
 
 	log.Printf("Running.")
-	go btns.Run()
 
 	if *listen != "" {
 		servePort(f.Mux)
