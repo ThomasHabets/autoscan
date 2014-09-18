@@ -50,16 +50,16 @@ var (
 	scanimage = flag.String("scanimage", "scanimage", "Scanimage binary from SANE.")
 	convert   = flag.String("convert", "convert", "Convert binary from ImageMagick.")
 
-	pinButtonSingle = flag.Int("pin_single", 22, "GPIO PIN for 'scan single'.")
-	pinButtonDuplex = flag.Int("pin_duplex", 23, "GPIO PIN for 'scan duplex'.")
-	pinButton3      = flag.Int("pin_ack", 17, "GPIO PIN for 'ACK'.")
-	pinButton4      = flag.Int("pin_reboot", 27, "GPIO PIN for 'reboot'.")
+	pinButtonSingle = flag.Int("pin_single", 5, "GPIO PIN for 'scan single'.")
+	pinButtonDuplex = flag.Int("pin_duplex", 6, "GPIO PIN for 'scan duplex'.")
+	pinButton3      = flag.Int("pin_ack", 24, "GPIO PIN for 'ACK'.")
+	pinButton4      = flag.Int("pin_reboot", 25, "GPIO PIN for 'reboot'.")
 
-	pinLED1a = flag.Int("pin_led1_a", 6, "GPIO PIN for LED 1 PIN 1/2.")
-	pinLED1b = flag.Int("pin_led1_b", 25, "GPIO PIN for LED 1 PIN 2/2.")
+	pinLED1a = flag.Int("pin_led1_a", 27, "GPIO PIN for LED 1 PIN 1/2.")
+	pinLED1b = flag.Int("pin_led1_b", 23, "GPIO PIN for LED 1 PIN 2/2.")
 
-	pinLED2a = flag.Int("pin_led2_a", 5, "GPIO PIN for LED 2 PIN 1/2.")
-	pinLED2b = flag.Int("pin_led2_b", 24, "GPIO PIN for LED 2 PIN 2/2.")
+	pinLED2a = flag.Int("pin_led2_a", 17, "GPIO PIN for LED 2 PIN 1/2.")
+	pinLED2b = flag.Int("pin_led2_b", 22, "GPIO PIN for LED 2 PIN 2/2.")
 )
 
 func oauthConfig(id, secret string) *oauth.Config {
@@ -68,10 +68,9 @@ func oauthConfig(id, secret string) *oauth.Config {
 		ClientSecret: secret,
 		AuthURL:      "https://accounts.google.com/o/oauth2/auth",
 		Scope:        "https://www.googleapis.com/auth/drive",
-		//Scope:       "https://www.googleapis.com/auth/drive.file",
-		TokenURL:    "https://accounts.google.com/o/oauth2/token",
-		RedirectURL: "urn:ietf:wg:oauth:2.0:oob",
-		AccessType:  "offline",
+		TokenURL:     "https://accounts.google.com/o/oauth2/token",
+		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
+		AccessType:   "offline",
 	}
 }
 

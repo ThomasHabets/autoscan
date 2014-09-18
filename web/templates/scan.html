@@ -1,12 +1,16 @@
 <html>
   <head>
     <title>Autoscan - start scan</title>
-    <link rel="stylesheet" type="text/css" href="/static/autoscan.css" media="screen"/>
+    <link rel="stylesheet" type="text/css" href="static/autoscan.css" media="screen"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
   </head>
   <body>
     <h1>Autoscan - start scan</h1>
+    {{if .Err}}
     <h2>Error starting scan: {{.Err}}</h2>
-    <a href="/">Back to start</a>.
+    <a href=".">Back to start</a>.
+    {{else}}
+    <meta http-equiv="refresh" content="0; url=status">
+    {{end}}
   </body>
 </html>
