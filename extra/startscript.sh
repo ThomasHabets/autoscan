@@ -7,7 +7,7 @@ DAEMON=/opt/autoscan/bin/autoscan
 PIDFILE=/var/run/autoscan.pid
 USER=thompa
 GROUP=scanner
-DAEMON_ARGS="-scanimage=$SCANIMAGE -templates=/opt/autoscan/templates -static=/opt/autoscan/static -listen=:8080 -config=/opt/autoscan/etc/autoscan.conf -logfile=/opt/autoscan/log/autoscan.log"
+DAEMON_ARGS="-scanimage=$SCANIMAGE -templates=/opt/autoscan/templates -static=/opt/autoscan/static -listen=:8080 -config=/opt/autoscan/etc/autoscan.conf -logfile=/opt/autoscan/log/autoscan.log -use_adafruit"
 
 case "$1" in
     start)

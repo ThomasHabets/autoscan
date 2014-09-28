@@ -6,8 +6,11 @@
   </head>
   <body>
     <form action="scan" method="post">
-      <input class="button" type="submit" name="single" value="Single sided" />
-      <input class="button" type="submit" name="double" value="Double sided" />
+      <input class="button scan-button" disabled type="submit" name="single" value="Single sided" />
+      <input class="button scan-button" disabled type="submit" name="double" value="Double sided" />
     </form>
+    <button class="button" onclick="javascript:window.location = 'status'">Show status</button>
   </body>
 </html>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js"></script>
+<script type="text/javascript" src="static/root.js"></script>

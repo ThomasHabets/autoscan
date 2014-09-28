@@ -25,9 +25,11 @@ import (
 
 	"code.google.com/p/goauth2/oauth"
 	drive "code.google.com/p/google-api-go-client/drive/v2"
+	drivedulib "github.com/ThomasHabets/drive-du/lib"
 
+	"github.com/ThomasHabets/autoscan/adafruit"
 	"github.com/ThomasHabets/autoscan/backend"
-	"github.com/ThomasHabets/autoscan/backend/leds"
+	//"github.com/ThomasHabets/autoscan/backend/leds"
 	"github.com/ThomasHabets/autoscan/buttons"
 	"github.com/ThomasHabets/autoscan/web"
 )
@@ -35,18 +37,23 @@ import (
 const (
 	// BasePath is where are the GPIO special files are.
 	BasePath = "/sys/class/gpio"
+	scope    = "https://www.googleapis.com/auth/drive"
 )
 
 var (
 	listen     = flag.String("listen", "", "Address to listen to.")
-	socketPath = flag.String("socket", "", "UNIX socket to listen to.")
+	listenFCGI = flag.String("listen_fcgi", "", "FCGI Address to listen to.")
+	socketPath = flag.String("socket", "", "UNIX socket to listen to for FCGI.")
 
 	logfile    = flag.String("logfile", "", "Where to log. If not specified will log to stdout.")
 	configFile = flag.String("config", ".autoscan", "Config file.")
+	configure  = flag.Bool("configure", false, "Create config file.")
 	tmplDir    = flag.String("templates", "", "Directory with HTML templates.")
 	staticDir  = flag.String("static", "", "Directory with static files.")
 
-	useButtons = flag.Bool("use_buttons", false, "Enable buttons.")
+	useButtons  = flag.Bool("use_buttons", false, "Enable buttons.")
+	useLEDs     = flag.Bool("use_leds", false, "Use LEDs.")
+	useAdafruit = flag.Bool("use_adafruit", false, "Use Adafruit 16x2 LCD display.")
 
 	// Externals
 	scanimage = flag.String("scanimage", "scanimage", "Scanimage binary from SANE.")
@@ -69,7 +76,7 @@ func oauthConfig(id, secret string) *oauth.Config {
 		ClientId:     id,
 		ClientSecret: secret,
 		AuthURL:      "https://accounts.google.com/o/oauth2/auth",
-		Scope:        "https://www.googleapis.com/auth/drive",
+		Scope:        scope,
 		TokenURL:     "https://accounts.google.com/o/oauth2/token",
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
 		AccessType:   "offline",
@@ -88,6 +95,14 @@ func serveFCGI(m *http.ServeMux) error {
 		log.Fatal("Unable to chmod socket: ", err)
 	}
 
+	return fcgi.Serve(sock, m)
+}
+
+func serveFCGIPort(m *http.ServeMux) error {
+	sock, err := net.Listen("tcp", *listenFCGI)
+	if err != nil {
+		log.Fatalf("Unable to listen to socket %q: %v", *listenFCGI, err)
+	}
 	return fcgi.Serve(sock, m)
 }
 
@@ -190,6 +205,24 @@ func setDirection(n int, dir string) error {
 func main() {
 	flag.Parse()
 
+	if *configFile == "" {
+		log.Fatalf("-config is mandatory")
+	}
+	if *configure {
+		conf, err := drivedulib.Configure(scope, "offline")
+		if err != nil {
+			log.Fatalf("Failed to configure: %v", err)
+		}
+		folder, err := drivedulib.ReadLine("Folder ID: ")
+		if err != nil {
+			log.Fatalf("Unable to read folder ID: %v", err)
+		}
+		if err := ioutil.WriteFile(*configFile, []byte(fmt.Sprintf("%s\n%s\n%s\n%s\n", conf.ID, conf.Secret, conf.Token, folder)), 0600); err != nil {
+			log.Fatalf("Failed to write config file: %v", err)
+		}
+		return
+	}
+
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	if *logfile != "" {
@@ -207,8 +240,11 @@ func main() {
 		log.Fatalf("-templates is mandatory.")
 	}
 
-	if (*listen == "") == (*socketPath == "") {
-		log.Fatalf("Exactly one of -listen and -socket must be specified.")
+	{
+		a, b, c := *listen != "", *listenFCGI != "", *socketPath != ""
+		if (a && (b || c)) || (b && (a || c)) || (c && (a || b)) {
+			log.Fatalf("Exactly one of -listen, listen_fcgi and -socket must be specified.")
+		}
 	}
 
 	// Set up GPIO ports race-free.
@@ -239,24 +275,28 @@ func main() {
 		}
 	}
 
-	// Status LED: Blink when this daemon is running.
-	status := make(chan leds.LEDMode)
-	_, err := leds.LEDController(*pinLED1a, *pinLED1b, status)
-	if err != nil {
-		log.Fatalf("Status LED: %v", err)
-	}
-	status <- leds.GREEN
-	status <- leds.BLINK
+	if *useLEDs {
+		/*
+			// Status LED: Blink when this daemon is running.
+			status := make(chan leds.LEDMode)
+			_, err := leds.LEDController(*pinLED1a, *pinLED1b, status)
+			if err != nil {
+				log.Fatalf("Status LED: %v", err)
+			}
+			status <- leds.GREEN
+			status <- leds.BLINK
 
-	// Progress LED:
-	// * Solid green or red showing last status, ready for new scan.
-	// * Blinking green while "in progress".
-	progress := make(chan leds.LEDMode)
-	_, err = leds.LEDController(*pinLED2a, *pinLED2b, progress)
-	if err != nil {
-		log.Fatalf("Progress LED: %v", err)
+			// Progress LED:
+			// * Solid green or red showing last status, ready for new scan.
+			// * Blinking green while "in progress".
+			progress := make(chan leds.LEDMode)
+			_, err = leds.LEDController(*pinLED2a, *pinLED2b, progress)
+			if err != nil {
+				log.Fatalf("Progress LED: %v", err)
+			}
+			progress <- leds.GREEN
+		*/
 	}
-	progress <- leds.GREEN
 
 	cfg, err := readConfig()
 	if err != nil {
@@ -276,7 +316,7 @@ func main() {
 		Convert:   *convert,
 		ParentDir: cfg.parent,
 		Drive:     d,
-		Progress:  progress,
+		//Progress:  progress,
 	}
 
 	f := web.New(*tmplDir, *staticDir, &b)
@@ -287,14 +327,26 @@ func main() {
 			log.Fatalf("Setting up buttons: %v", err)
 		}
 		btns.Backend = &b
-		btns.Progress = progress
+		//btns.Progress = progress
 		go btns.Run()
 	}
 
+	if *useAdafruit {
+		btns, err := adafruit.New(&b)
+		if err != nil {
+			log.Fatalf("Setting up adafruit: %v", err)
+		}
+		go btns.Run()
+		b.UI = btns
+	}
+
+	b.UI.Msg("IDLE", "Autoscan Ready.|Just started.")
 	log.Printf("Running.")
 
 	if *listen != "" {
 		servePort(f.Mux)
+	} else if *listenFCGI != "" {
+		serveFCGIPort(f.Mux)
 	} else {
 		serveFCGI(f.Mux)
 	}

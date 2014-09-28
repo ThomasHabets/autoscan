@@ -13,8 +13,6 @@ import (
 	"time"
 
 	drive "code.google.com/p/google-api-go-client/drive/v2"
-
-	"github.com/ThomasHabets/autoscan/backend/leds"
 )
 
 // State describes what the backend is doing.
@@ -35,12 +33,18 @@ type Backend struct {
 	Convert   string
 	ParentDir string
 	Drive     *drive.Service
-	Progress  chan leds.LEDMode
+	UI        UI
 
 	// Read by external flows, mutex protected.
 	mutex    sync.Mutex
 	state    State
 	lastFail error
+}
+
+// UI is the physical UI for autoscan.
+type UI interface {
+	Msg(status, msg string)
+	Run()
 }
 
 // Set the initial state of the Backend.
@@ -196,8 +200,11 @@ func (b *Backend) Run(duplex bool) error {
 	}(); err != nil {
 		return err
 	}
-	b.Progress <- leds.GREEN
-	b.Progress <- leds.BLINK
+	if duplex {
+		b.UI.Msg("ACTIVE", "Scanning...|Double sided")
+	} else {
+		b.UI.Msg("ACTIVE", "Scanning...|Single sided")
+	}
 
 	// When done, reset to IDLE.
 	defer func() {
@@ -205,9 +212,9 @@ func (b *Backend) Run(duplex bool) error {
 		defer b.mutex.Unlock()
 		b.state = IDLE
 		if b.lastFail == nil {
-			b.Progress <- leds.GREEN
+			b.UI.Msg("IDLE", "Ready|Last scan succeeded")
 		} else {
-			b.Progress <- leds.RED
+			b.UI.Msg("FAILED", "Failed!|"+b.lastFail.Error())
 		}
 	}()
 
@@ -229,12 +236,14 @@ func (b *Backend) Run(duplex bool) error {
 	}
 
 	// Convert.
+	b.UI.Msg("ACTIVE", "Converting...|")
 	if err := b.convert(dir); err != nil {
 		errout(err)
 		return err
 	}
 
 	// Upload.
+	b.UI.Msg("ACTIVE", "Uploading...|")
 	if err := b.upload(dir); err != nil {
 		errout(err)
 		return err

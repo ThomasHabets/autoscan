@@ -4,17 +4,20 @@
     <link rel="stylesheet" type="text/css" href="static/autoscan.css" media="screen"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
   </head>
-  <meta http-equiv="refresh" content="3">
   <body>
-    {{if eq .State "IDLE"}}
+    <div id="status-div" class="msg">awaiting status...</div>
+{{/*    {{if eq .State "IDLE"}}
       {{if .LastFail}}
-        <div class="msg fail">Last scan FAILED: {{.LastFail}}</div>
+        <div id="status-div" class="msg fail">Last scan FAILED: {{.LastFail}}</div>
       {{else}}
-        <div class="msg success">Last scan succeeded</div>
+        <div id="status-div" class="msg success">Last scan succeeded</div>
       {{end}}
     {{else}}
-      <div class="msg active">{{.State}}...</div>
+      <div id="status-div" class="msg active">{{.State}}...</div>
     {{end}}
+*/}}
     <button class="button" onclick="javascript:window.location = '.'">Back to start</button>
   </body>
 </html>
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script type="text/javascript" src="static/status.js"></script>

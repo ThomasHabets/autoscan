@@ -4,6 +4,7 @@ Package web provides the Web UI for Autoscan.
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -40,6 +41,7 @@ func New(tmpldir, staticDir string, b *backend.Backend) *Frontend {
 	f.Mux.HandleFunc("/", f.handleRoot)
 	f.Mux.HandleFunc("/scan", f.handleScan)
 	f.Mux.HandleFunc("/status", f.handleStatus)
+	f.Mux.HandleFunc("/api/status", f.handleAPIStatus)
 	f.Mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(f.staticDir))))
 	return f
 }
@@ -83,4 +85,23 @@ func (f *Frontend) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}{}
 	data.State, data.LastFail = f.backend.Status()
 	f.tmplStatus.Execute(w, &data)
+}
+
+func (f *Frontend) handleAPIStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	data := struct {
+		State    backend.State
+		LastFail string
+	}{}
+	var lf error
+	data.State, lf = f.backend.Status()
+	if lf != nil {
+		data.LastFail = lf.Error()
+	}
+	b, err := json.Marshal(&data)
+	if err != nil {
+		http.Error(w, "Internal error: JSON encoding error.", http.StatusInternalServerError)
+		return
+	}
+	w.Write(b)
 }
