@@ -217,7 +217,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Unable to read folder ID: %v", err)
 		}
-		if err := ioutil.WriteFile(*configFile, []byte(fmt.Sprintf("%s\n%s\n%s\n%s\n", conf.ID, conf.Secret, conf.Token, folder)), 0600); err != nil {
+		if err := ioutil.WriteFile(*configFile, []byte(fmt.Sprintf("%s\n%s\n%s\n%s\n", conf.OAuth.ClientID, conf.OAuth.ClientSecret, conf.OAuth.RefreshToken, folder)), 0600); err != nil {
 			log.Fatalf("Failed to write config file: %v", err)
 		}
 		return
