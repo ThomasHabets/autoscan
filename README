@@ -1,3 +1,16 @@
+Autoscan
+
+Copyright(c) Thomas Habets <thomas@habets.se> 2014
+
+Scans from USB scanner directly into Google drive.
+
+
+Status
+------
+Works just fine, but code needs cleanup.
+Documentation needs update after switch to LCD screen.
+
+
 Dependencies
 ------------
 apt-get install sane-utils libsane-hpaio imagemagick
