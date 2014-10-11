@@ -1,19 +1,23 @@
 #!/usr/bin/python -u
-
+#
+# Copyright(c) Thomas Habets <thomas@habets.se> 2014
+#
+# I couldn't find an SPI interface written in Go, so I have to shell
+# out to this.
+#
+# When a button is pressed, it writes the buttons name to stdout.
+# Messages can be written to stdin in this format:
+#   r|g|b|Row1|Row2
+# Where (r,g,b) are backlight colors, and Row1 and Row2 are what's to
+# be written on the two rows.
+# E.g.:
+#   1|0|0|Error:|Something worng!
+#
 import sys
 import time
 import threading
 
 import Adafruit_CharLCD as LCD
-
-def main2():
-    if len(sys.argv) != 5:
-        print >>sys.stderr, "Usage: %s r g b message" % sys.argv[0]
-        sys.exit(1)
-    cols = [float(x) for x in sys.argv[1:4]]
-    lcd = LCD.Adafruit_CharLCDPlate(initial_color=cols)
-    lcd.clear()
-    lcd.message(sys.argv[4])
 
 def _ButtonThread(lcd):
     bs = [(LCD.SELECT, 'SELECT'),

@@ -1,3 +1,10 @@
+// Package backend implements the scanning, converting and uploading.
+//
+// The UI is outsourced to the "UI" interface, which is implemented by
+// the Adafruit display, and the LED interface (well, not yet). The
+// web UI polls for status via backend.Status(), currently.
+//
+// Triggering a scan is done by calling backend.Run().
 package backend
 
 import (

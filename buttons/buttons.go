@@ -1,3 +1,5 @@
+// Package buttons is not used, currently. It's half of the LED based interface.
+// See comments there.
 package buttons
 
 /*

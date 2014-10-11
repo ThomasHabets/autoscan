@@ -5,7 +5,7 @@ set -e
 SCANIMAGE="/opt/autoscan/bin/scanimage-wrap"
 DAEMON=/opt/autoscan/bin/autoscan
 PIDFILE=/var/run/autoscan.pid
-USER=thompa
+USER=scanner
 GROUP=scanner
 DAEMON_ARGS="-scanimage=$SCANIMAGE -templates=/opt/autoscan/templates -static=/opt/autoscan/static -listen=:8080 -config=/opt/autoscan/etc/autoscan.conf -logfile=/opt/autoscan/log/autoscan.log -use_adafruit"
 

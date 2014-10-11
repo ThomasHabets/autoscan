@@ -1,7 +1,15 @@
+// Package adafruit implements a UI against the Adafruit 16x2 LCD display.
+//
+// https://learn.adafruit.com/adafruit-16x2-character-lcd-plus-keypad-for-raspberry-pi/overview
+//
+// 'Select' button scans single-sided.
+// 'Right' button scans double-sided.
+// 'Up' button resets (acks) error message.
 package adafruit
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +20,11 @@ import (
 	"github.com/ThomasHabets/autoscan/backend"
 )
 
+var (
+	adafruitLCDBinary = flag.String("adafruit_lcd_binary", "/opt/autoscan/bin/lcd.py", "Path to LCD.py binary.")
+)
+
+// adafruit implements the backend.UI interface.
 type adafruit struct {
 	b      *backend.Backend
 	cmd    *exec.Cmd
@@ -21,18 +34,18 @@ type adafruit struct {
 
 // New creates a new adafruit object.
 func New(b *backend.Backend) (*adafruit, error) {
-	cmd := exec.Command("/opt/autoscan/bin/lcd.py")
+	cmd := exec.Command(*adafruitLCDBinary)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Fatalf("Failed to create stdout pipe: %v", err)
+		return nil, fmt.Errorf("creating stdout pipe: %v", err)
 	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		log.Fatalf("Failed to create stdin pipe: %v", err)
+		return nil, fmt.Errorf("creating stdin pipe: %v", err)
 	}
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		log.Fatalf("Failed to start lcd binary: %v", err)
+		return nil, fmt.Errorf("starting lcd binary %q: %v", *adafruitLCDBinary, err)
 	}
 	return &adafruit{
 		b:      b,
@@ -69,6 +82,7 @@ func (a *adafruit) Run() {
 		case "RIGHT":
 			a.b.Run(true)
 		case "UP":
+			// Clear error message.
 			a.Msg("IDLE", "Autoscan ready|")
 		}
 	}

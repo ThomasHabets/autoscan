@@ -1,5 +1,4 @@
 #!/bin/sh
-
 exec scanimage \
     -d fujitsu \
     -y 300 -x 300 \

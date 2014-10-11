@@ -1,3 +1,7 @@
+// Package leds should implement backend.UI, but not yet.
+// This code is no longer called, but should be fixable.
+//
+// But I have an Adafruit 16x2 instead, so don't hold your breath.
 package leds
 
 import (

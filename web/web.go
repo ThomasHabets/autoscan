@@ -1,6 +1,4 @@
-/*
-Package web provides the Web UI for Autoscan.
-*/
+// Package web provides the Web UI for Autoscan.
 package web
 
 import (
