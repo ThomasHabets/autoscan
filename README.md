@@ -1,4 +1,5 @@
 Autoscan
+========
 
 Copyright(c) Thomas Habets <thomas@habets.se> 2014
 
@@ -7,7 +8,15 @@ Scans from USB scanner directly into Google drive.
 
 Dependencies
 ============
+```
 apt-get install sane-utils libsane-hpaio imagemagick
+```
+
+And for compiling:
+```
+apt-get install git mercurial
+```
+And Go.
 
 
 Install
@@ -19,7 +28,7 @@ go install github.com/ThomasHabets/autoscan
 
 2) Give access to USB storage to the user, say a dedicated "scanner" user
 -------------------------------------------------------------------------
-Put this in /dev/udev/rules.d/99-autoscan.rules:
+Put this in /etc/udev/rules.d/99-autoscan.rules:
   ATTRS{idVendor}=="04c5", ATTRS{idProduct}=="1155", SYMLINK+="usbscanner", GROUP="scanner"
 
 Make sure whatever user you run as is member of "scanner" group.
