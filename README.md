@@ -42,7 +42,7 @@ Make sure whatever user you run as is member of "scanner" group.
 ```
 sudo mkdir -p /opt/autoscan/{bin,log,etc}
 sudo chown -R scanner /opt/autoscan
-cp $HOME/go/bin/autoscan extra/lcd.py /opt/autoscan/bin/
+cp $HOME/go/bin/autoscan adafruit/lcd.py /opt/autoscan/bin/
 cp -ax web/{templates,static} /opt/autoscan/
 ```
 
