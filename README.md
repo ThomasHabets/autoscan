@@ -49,7 +49,7 @@ cp -ax web/{templates,static} /opt/autoscan/
 4) Configure
 ------------
 ```
-/opt/autoscan/bin -config=/opt/autoscan/etc/autoscan.conf -configure
+/opt/autoscan/bin/autoscan -config=/opt/autoscan/etc/autoscan.conf -configure
 ```
 
 5a) If you have an Adafruit 16x2 display
