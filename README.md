@@ -60,7 +60,10 @@ sudo pip install RPi.GPIO
 git clone https://github.com/adafruit/Adafruit_Python_CharLCD.git
 cd Adafruit_Python_CharLCD
 sudo python setup.py install
+echo i2c-bcm2708 | sudo tee -a /etc/modules
+echo i2c-dev | sudo tee -a /etc/modules
 ```
+Also add the scanner user to the "i2c" group.
 
 5b) Instead if you wired up buttons and LEDs, this is an example GPIO layout
 ----------------------------------------------------------------------------
