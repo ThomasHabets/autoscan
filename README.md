@@ -24,7 +24,10 @@ Install
 
 1) Install binary
 -----------------
-go install github.com/ThomasHabets/autoscan
+```
+GOPATH=$HOME/go go get github.com/ThomasHabets/autoscan
+GOPATH=$HOME/go go install github.com/ThomasHabets/autoscan
+```
 
 2) Give access to USB storage to the user, say a dedicated "scanner" user
 -------------------------------------------------------------------------
@@ -38,7 +41,7 @@ Make sure whatever user you run as is member of "scanner" group.
 ```
 sudo mkdir -p /opt/autoscan/{bin,log,etc}
 sudo chown -R scanner /opt/autoscan
-cp autoscan extra/lcd.py /opt/autoscan/bin/
+cp $HOME/go/bin/autoscan extra/lcd.py /opt/autoscan/bin/
 cp -ax web/{templates,static} /opt/autoscan/
 ```
 
