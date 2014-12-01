@@ -32,8 +32,9 @@ GOPATH=$HOME/go go install github.com/ThomasHabets/autoscan
 2) Give access to USB storage to the user, say a dedicated "scanner" user
 -------------------------------------------------------------------------
 Put this in /etc/udev/rules.d/99-autoscan.rules:
-  ATTRS{idVendor}=="04c5", ATTRS{idProduct}=="1155", SYMLINK+="usbscanner", GROUP="scanner"
-
+```
+ATTRS{idVendor}=="04c5", ATTRS{idProduct}=="1155", SYMLINK+="usbscanner", GROUP="scanner"
+```
 Make sure whatever user you run as is member of "scanner" group.
 
 3) Set up directory
