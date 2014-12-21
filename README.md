@@ -58,8 +58,9 @@ cp -ax web/{templates,static} /opt/autoscan/
 sudo apt-get install build-essential python-dev python-smbus python-pip git
 sudo pip install RPi.GPIO
 git clone https://github.com/adafruit/Adafruit_Python_CharLCD.git
-cd Adafruit_Python_CharLCD
-sudo python setup.py install
+(cd Adafruit_Python_CharLCD && sudo python setup.py install)
+git clone https://github.com/adafruit/Adafruit_Python_GPIO
+(cd Adafruit_Python_GPIO && sudo python setup.py install)
 echo i2c-bcm2708 | sudo tee -a /etc/modules
 echo i2c-dev | sudo tee -a /etc/modules
 ```
