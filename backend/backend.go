@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	drive "code.google.com/p/google-api-go-client/drive/v2"
+	drive "google.golang.org/api/drive/v2"
 )
 
 // State describes what the backend is doing.

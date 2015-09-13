@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"code.google.com/p/goauth2/oauth"
-	drive "code.google.com/p/google-api-go-client/drive/v2"
+	drive "google.golang.org/api/drive/v2"
 	drivedulib "github.com/ThomasHabets/drive-du/lib"
 
 	"github.com/ThomasHabets/autoscan/adafruit"
@@ -319,7 +319,7 @@ func main() {
 		//Progress:  progress,
 	}
 
-	f := web.New(*tmplDir, *staticDir, &b)
+	f := web.New(d, cfg.parent, *tmplDir, *staticDir, &b)
 
 	if *useButtons {
 		btns, err := buttons.New(*pinButtonSingle, *pinButtonDuplex, *pinButton3, *pinButton4)

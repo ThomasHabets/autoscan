@@ -25,3 +25,6 @@ h1 {
   color: black;
   background-color: yellow;
 }
+#last-pages li {
+  display: inline-block;
+}

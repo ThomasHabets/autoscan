@@ -1,13 +1,15 @@
 <html>
   <head>
-    <title>Autoscan - Status</title>
+    <title>Most recent scan</title>
     <link rel="stylesheet" type="text/css" href="static/autoscan.css" media="screen"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
   </head>
   <body>
-    <div id="status-div" class="msg">awaiting status...</div>
     <button class="button" onclick="javascript:window.location = '.'">Back to start</button>
+    <ol id="last-pages">
+      {{range .Pages}}
+        <li><a href="{{.URL}}"><img src="{{.ThumbURL}}"></a></li>
+      {{end}}
+    </ol>	  
   </body>
 </html>
-<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
-<script type="text/javascript" src="static/status.js"></script>
