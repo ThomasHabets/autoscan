@@ -1,11 +1,14 @@
 h1 {
   text-align: center;
 }
+form {
+  margin-bottom: 0;
+}
 .button {
   display: block;
   font-size: 36pt;
   width: 100%;
-  height: 30%;
+  height: 25%;
 }
 .msg {
   font-size: 36pt;
