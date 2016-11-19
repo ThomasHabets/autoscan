@@ -23,9 +23,9 @@ import (
 	"strings"
 	"time"
 
+	drivedulib "github.com/ThomasHabets/drive-du/lib"
 	oauth "golang.org/x/oauth2"
 	drive "google.golang.org/api/drive/v2"
-	drivedulib "github.com/ThomasHabets/drive-du/lib"
 
 	"github.com/ThomasHabets/autoscan/adafruit"
 	"github.com/ThomasHabets/autoscan/backend"
@@ -36,8 +36,8 @@ import (
 
 const (
 	// BasePath is where are the GPIO special files are.
-	BasePath = "/sys/class/gpio"
-	scope    = "https://www.googleapis.com/auth/drive"
+	BasePath   = "/sys/class/gpio"
+	scope      = "https://www.googleapis.com/auth/drive"
 	accessType = "offline"
 )
 
@@ -72,16 +72,21 @@ var (
 	pinLED2b = flag.Int("pin_led2_b", 22, "GPIO PIN for LED 2 PIN 2/2.")
 )
 
+type nullUI struct{}
+
+func (*nullUI) Msg(status, msg string) {}
+func (*nullUI) Run()                   {}
+
 func oauthConfig(id, secret string) *oauth.Config {
 	return &oauth.Config{
 		ClientID:     id,
 		ClientSecret: secret,
 		Endpoint: oauth.Endpoint{
-			AuthURL:      "https://accounts.google.com/o/oauth2/auth",
-			TokenURL:     "https://accounts.google.com/o/oauth2/token",
+			AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+			TokenURL: "https://accounts.google.com/o/oauth2/token",
 		},
-		Scopes:        []string{scope},
-		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
+		Scopes:      []string{scope},
+		RedirectURL: "urn:ietf:wg:oauth:2.0:oob",
 		//AccessType:   "offline",
 	}
 }
@@ -241,31 +246,33 @@ func main() {
 		}
 	}
 
-	// Set up GPIO ports race-free.
-	for _, n := range []int{
-		*pinLED1a,
-		*pinLED1b,
-		*pinLED2a,
-		*pinLED2b,
-	} {
-		if err := export(n); err != nil {
-			log.Fatalf("export(%d): %v", n, err)
+	if *useButtons || *useAdafruit || *useLEDs {
+		// Set up GPIO ports race-free.
+		for _, n := range []int{
+			*pinLED1a,
+			*pinLED1b,
+			*pinLED2a,
+			*pinLED2b,
+		} {
+			if err := export(n); err != nil {
+				log.Fatalf("export(%d): %v", n, err)
+			}
+			if err := setDirection(n, "out"); err != nil {
+				log.Fatalf("setDirection(%d, out): %v", n, err)
+			}
 		}
-		if err := setDirection(n, "out"); err != nil {
-			log.Fatalf("setDirection(%d, out): %v", n, err)
-		}
-	}
-	for _, n := range []int{
-		*pinButtonSingle,
-		*pinButtonDuplex,
-		*pinButton3,
-		*pinButton4,
-	} {
-		if err := export(n); err != nil {
-			log.Fatalf("export(%d): %v", n, err)
-		}
-		if err := setDirection(n, "in"); err != nil {
-			log.Fatalf("setDirection(%d, in): %v", n, err)
+		for _, n := range []int{
+			*pinButtonSingle,
+			*pinButtonDuplex,
+			*pinButton3,
+			*pinButton4,
+		} {
+			if err := export(n); err != nil {
+				log.Fatalf("export(%d): %v", n, err)
+			}
+			if err := setDirection(n, "in"); err != nil {
+				log.Fatalf("setDirection(%d, in): %v", n, err)
+			}
 		}
 	}
 
@@ -297,7 +304,7 @@ func main() {
 		log.Fatal(err)
 	}
 	authedClient, err := drivedulib.Connect(drivedulib.ConfigOAuth{
-		ClientID: cfg.clientID,
+		ClientID:     cfg.clientID,
 		ClientSecret: cfg.clientSecret,
 		RefreshToken: cfg.refreshToken,
 	}, scope, accessType)
@@ -314,6 +321,7 @@ func main() {
 		Convert:   *convert,
 		ParentDir: cfg.parent,
 		Drive:     d,
+		UI:        &nullUI{},
 		//Progress:  progress,
 	}
 
