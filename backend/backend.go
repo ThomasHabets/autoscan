@@ -77,8 +77,11 @@ func (b *Backend) scan(duplex bool, dir string) error {
 	} else {
 		args = append(args, "--source", "ADF Front")
 	}
+	var stdout,stderr bytes.Buffer
 	cmd := exec.Command(b.Scanimage, args...)
 	cmd.Dir = dir
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 	err := cmd.Run()
 
 	// Check scan status.
@@ -88,7 +91,7 @@ func (b *Backend) scan(duplex bool, dir string) error {
 	case err.Error() == "exit status 7":
 		log.Printf("Scan finished successfully.")
 	default:
-		return fmt.Errorf("scanning failed: %v", err)
+		return fmt.Errorf("scanning failed: %v; stdout=%q / stderr=%q", err, stdout.String(), stderr.String())
 	}
 	return nil
 }
