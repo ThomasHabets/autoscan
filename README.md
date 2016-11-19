@@ -1,6 +1,6 @@
 # Autoscan
 
-Copyright(c) Thomas Habets <thomas@habets.se> 2014
+Copyright(c) Thomas Habets <thomas@habets.se> 2014-2016
 
 Scans from USB scanner directly into Google drive.
 

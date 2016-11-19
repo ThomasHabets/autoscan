@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"code.google.com/p/goauth2/oauth"
+	oauth "golang.org/x/oauth2"
 	drive "google.golang.org/api/drive/v2"
 	drivedulib "github.com/ThomasHabets/drive-du/lib"
 
@@ -38,6 +38,7 @@ const (
 	// BasePath is where are the GPIO special files are.
 	BasePath = "/sys/class/gpio"
 	scope    = "https://www.googleapis.com/auth/drive"
+	accessType = "offline"
 )
 
 var (
@@ -73,13 +74,15 @@ var (
 
 func oauthConfig(id, secret string) *oauth.Config {
 	return &oauth.Config{
-		ClientId:     id,
+		ClientID:     id,
 		ClientSecret: secret,
-		AuthURL:      "https://accounts.google.com/o/oauth2/auth",
-		Scope:        scope,
-		TokenURL:     "https://accounts.google.com/o/oauth2/token",
+		Endpoint: oauth.Endpoint{
+			AuthURL:      "https://accounts.google.com/o/oauth2/auth",
+			TokenURL:     "https://accounts.google.com/o/oauth2/token",
+		},
+		Scopes:        []string{scope},
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
-		AccessType:   "offline",
+		//AccessType:   "offline",
 	}
 }
 
@@ -127,15 +130,6 @@ func readConfig() (*config, error) {
 		refreshToken: s[2],
 		parent:       s[3],
 	}, nil
-}
-func connect(id, secret, token string) (*oauth.Transport, error) {
-	t := &oauth.Transport{
-		Config: oauthConfig(id, secret),
-		Token: &oauth.Token{
-			RefreshToken: token,
-		},
-	}
-	return t, t.Refresh()
 }
 
 func export(n int) error {
@@ -209,7 +203,7 @@ func main() {
 		log.Fatalf("-config is mandatory")
 	}
 	if *configure {
-		conf, err := drivedulib.Configure(scope, "offline")
+		conf, err := drivedulib.Configure(scope, "offline", "", "")
 		if err != nil {
 			log.Fatalf("Failed to configure: %v", err)
 		}
@@ -302,11 +296,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	t, err := connect(cfg.clientID, cfg.clientSecret, cfg.refreshToken)
+	authedClient, err := drivedulib.Connect(drivedulib.ConfigOAuth{
+		ClientID: cfg.clientID,
+		ClientSecret: cfg.clientSecret,
+		RefreshToken: cfg.refreshToken,
+	}, scope, accessType)
 	if err != nil {
 		log.Fatal(err)
 	}
-	d, err := drive.New(t.Client())
+	d, err := drive.New(authedClient)
 	if err != nil {
 		log.Fatalf("Creating Google Drive client: %v", err)
 	}
