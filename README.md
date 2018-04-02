@@ -89,6 +89,14 @@ exec scanimage \
     -use_adafruit
 ```
 
+### 8) Optional: increase the max ImageMagick temp disk use
+
+If you scan 10 or more pages at a time (double-sided counts as two)
+then you may want to increase the limit from the default of 1GiB.
+
+In `/etc/ImageMagick-6/policy.xml` find `<policy domain="resource"
+name="disk" value="1GiB"/>` and change it to a higher value like
+10GiB.
 
 ## Random notes
 Bugs in gpio on github:
