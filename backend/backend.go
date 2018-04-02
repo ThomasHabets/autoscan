@@ -115,6 +115,8 @@ func (b *Backend) convert(dir string) error {
 			inFiles = append(inFiles, in)
 		}
 	}
+	sort.Slice(inFiles, func(a, b int) bool { return inFiles[a] < inFiles[b] })
+	sort.SliceStable(inFiles, func(a, b int) bool { return len(inFiles[a]) < len(inFiles[b]) })
 	if len(inFiles) == 0 {
 		return fmt.Errorf("zero pages scanned")
 	}
