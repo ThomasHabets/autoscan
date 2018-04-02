@@ -107,27 +107,31 @@ func (b *Backend) convert(dir string) error {
 		return err
 	}
 	const ext = ".pnm"
-	count := 0
+
+	var inFiles []string
 	for _, fn := range files {
 		in := path.Join(dir, fn.Name())
 		if strings.HasSuffix(in, ext) {
-			count++
-			out := in[0:len(in)-len(ext)] + ".jpg"
-			cmd := exec.Command(b.Convert, in, out)
-			cmd.Dir = dir
-			var stderr bytes.Buffer
-			cmd.Stderr = &stderr
-			log.Printf("Running %q %q", "convert", cmd.Args)
-			if err := cmd.Run(); err != nil {
-				return fmt.Errorf("running %q %q: %v. Stderr: %q", "convert", cmd.Args, err, stderr.String())
-			}
-			if err := os.Remove(in); err != nil {
-				return fmt.Errorf("deleting pnm (%q) after convert: %v", in, err)
-			}
+			inFiles = append(inFiles, in)
 		}
 	}
-	if count == 0 {
+	if len(inFiles) == 0 {
 		return fmt.Errorf("zero pages scanned")
+	}
+	cmd := exec.Command(b.Convert, inFiles...)
+	// Optional: -quality
+	cmd.Args = append(cmd.Args, "-compress","jpeg","out.pdf")
+	cmd.Dir = dir
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	log.Printf("Running %q %q", "convert", cmd.Args)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running %q %q: %v. Stderr: %q", "convert", cmd.Args, err, stderr.String())
+	}
+	for _, in := range inFiles {
+		if err := os.Remove(in); err != nil {
+			return fmt.Errorf("deleting pnm (%q) after convert: %v", in, err)
+		}
 	}
 	return nil
 }
@@ -139,47 +143,26 @@ func (b *Backend) upload(dir string) error {
 		b.state = UPLOADING
 	}()
 
-	// Get list of files.
-	files, err := ioutil.ReadDir(dir)
+	fullName := path.Join(dir, "out.pdf")
+
+	now := time.Now().Format(time.RFC3339)
+	
+	title := fmt.Sprintf("Scan %s.pdf", now)
+	log.Printf("Uploading %q as %q", fullName, title)
+
+	// Upload one file.
+	inf, err := os.Open(fullName)
 	if err != nil {
-		return fmt.Errorf("readDir(%q): %v", dir, err)
+		return fmt.Errorf("open(%q): %v", fullName, err)
 	}
-
-	// Create parent dir.
-	dd, err := b.Drive.Files.Insert(&drive.File{
-		Title:    time.Now().Format(time.RFC3339),
-		Parents:  []*drive.ParentReference{{Id: b.ParentDir}},
-		MimeType: "application/vnd.google-apps.folder",
-	}).Do()
-	if err != nil {
-		return fmt.Errorf("creating Drive folder: %v", err)
-	}
-
-	// Upload files.
-	for _, fn := range files {
-		fullName := path.Join(dir, fn.Name())
-		title := fmt.Sprintf("Scan %s %s", dd.Title, fn.Name())
-		log.Printf("Uploading %q as %q", fn.Name(), title)
-
-		// Upload one file.
-		if err := func() error {
-			inf, err := os.Open(fullName)
-			if err != nil {
-				return fmt.Errorf("open(%q): %v", fullName, err)
-			}
-			defer inf.Close()
-			if _, err := b.Drive.Files.Insert(&drive.File{
-				Title:       title,
-				Description: fmt.Sprintf("Scanned by autoscan on %s", dd.Title),
-				Parents:     []*drive.ParentReference{{Id: dd.Id}},
-				MimeType:    "image/jpeg",
-			}).Media(inf).Do(); err != nil {
-				return fmt.Errorf("Drive.Files.Insert(): %v", err)
-			}
-			return nil
-		}(); err != nil {
-			return fmt.Errorf("uploading %q as %q: %v", fullName, title, err)
-		}
+	defer inf.Close()
+	if _, err := b.Drive.Files.Insert(&drive.File{
+		Title:       title,
+		Description: fmt.Sprintf("Scanned by autoscan on %s", now),
+		Parents:     []*drive.ParentReference{{Id: b.ParentDir}},
+		MimeType:    "application/pdf",
+	}).Media(inf).Do(); err != nil {
+		return fmt.Errorf("Drive.Files.Insert(): %v", err)
 	}
 	return nil
 }
